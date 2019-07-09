@@ -8,7 +8,6 @@ local playerSpeed = 0
 
 local bullets = {}
 local maxBullets = 4
-local bulletsFired = 0
 local fireCooldown = 0
 
 local enemies = {}
@@ -17,17 +16,12 @@ local score = 0
 
 local SPRITE_DIM = 32
 
-local function createBullet(x, y)
+local function createSprite(kind, x, y)
     return {
+        kind = kind,
         x = x,
         y = y,
-    }
-end
-
-local function createEnemy(x, y)
-    return {
-        x = x,
-        y = y,
+        alive = true,
     }
 end
 
@@ -40,10 +34,18 @@ end
 
 function love.update(dt)
     if #enemies == 0 then
-        table.insert(enemies, createEnemy(
+        table.insert(enemies, createSprite(
+            'enemy',
             math.floor(math.random() * (WIDTH - SPRITE_DIM)),
-            math.floor(math.random() * HEIGHT / 2)
+            - SPRITE_DIM
         ));
+    end
+
+    for _, enemy in ipairs(enemies) do
+        enemy.y = enemy.y + 3
+        if enemy.y > HEIGHT then
+            enemy.alive = false
+        end
     end
 
     if love.keyboard.isDown('a') or love.keyboard.isDown('left') then
@@ -71,9 +73,8 @@ function love.update(dt)
     end
 
     if fire then
-        if fireCooldown <= 0 and bulletsFired < maxBullets then
-            table.insert(bullets, createBullet(playerX + SPRITE_DIM / 2, playerY))
-            bulletsFired = bulletsFired + 1
+        if fireCooldown <= 0 and #bullets < maxBullets then
+            table.insert(bullets, createSprite('bullet', playerX + SPRITE_DIM / 2, playerY))
             fireCooldown = 0.5
         end
     end
@@ -81,31 +82,36 @@ function love.update(dt)
         fireCooldown = fireCooldown - dt
     end
 
-    local r = {}
-    local re = {}
     for i, bullet in ipairs(bullets) do
         bullet.y = bullet.y - 800 * dt
         if bullet.y < 0 then
-            table.insert(r, i)
-        end
-        for e, enemy in ipairs(enemies) do
-            if bullet.x >= enemy.x and bullet.x <= enemy.x + SPRITE_DIM and bullet.y >= enemy.y and bullet.y <= enemy.y + SPRITE_DIM then
-                table.insert(re, e)
-                score = score + 1
+            bullet.alive = false
+        else
+            for e, enemy in ipairs(enemies) do
+                if bullet.x >= enemy.x and bullet.x <= enemy.x + SPRITE_DIM and bullet.y >= enemy.y and bullet.y <= enemy.y + SPRITE_DIM then
+                    score = score + 1
+                    enemy.alive = false
+                    bullet.alive = false
+                end
             end
         end
     end
     
-    table.sort(r, function (a, b) return a > b end)
-    for _, rp in ipairs(r) do
-        table.remove(bullets, rp)
-        bulletsFired = bulletsFired - 1
+    local livingEnemies = {}
+    for _, enemy in ipairs(enemies) do
+        if enemy.alive then
+            table.insert(livingEnemies, enemy)
+        end
     end
+    enemies = livingEnemies
 
-    table.sort(re, function (a, b) return a > b end)
-    for _, rep in ipairs(re) do
-        table.remove(enemies, rep)
+    local livingBullets = {}
+    for _, bullet in ipairs(bullets) do
+        if bullet.alive then
+            table.insert(livingBullets, bullet)
+        end
     end
+    bullets = livingBullets
 end
 
 function love.draw()
