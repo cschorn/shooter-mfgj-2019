@@ -16,6 +16,9 @@ local score = 0
 
 local SPRITE_DIM = 32
 
+local spritesheet = nil
+local sprites = {}
+
 local function createSprite(kind, x, y)
     return {
         kind = kind,
@@ -27,9 +30,15 @@ end
 
 function love.load()
     love.window.setMode(600, 800)
+    love.graphics.setDefaultFilter('nearest', 'nearest')
+
     playerY = HEIGHT - SPRITE_DIM - 10
 
     playerSpeed = WIDTH / 2 -- 2 seconds to traverse screen
+
+    spritesheet = love.graphics.newImage("sprites-simple.png")
+    sprites.player = love.graphics.newQuad(0, 0, 8, 8, spritesheet:getDimensions())
+    sprites.alien = love.graphics.newQuad(0, 8, 8, 8, spritesheet:getDimensions())
 end
 
 function love.update(dt)
@@ -117,14 +126,13 @@ end
 function love.draw()
     love.graphics.setColor(1, 1, 1)
     love.graphics.print(score)
-    love.graphics.rectangle('fill', playerX, playerY, 32, 32)
+    love.graphics.draw(spritesheet, sprites.player, playerX, playerY, 0, 4, 4)
     for _, bullet in ipairs(bullets) do
         love.graphics.ellipse('fill', bullet.x, bullet.y, 4)
     end
 
-    love.graphics.setColor(1, 0, 0)
     for _, enemy in ipairs(enemies) do
-        love.graphics.rectangle('fill', enemy.x, enemy.y, 32, 32)
+        love.graphics.draw(spritesheet, sprites.alien, enemy.x, enemy.y, 0, 4, 4)
     end
 
 end
